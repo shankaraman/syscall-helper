@@ -1,12 +1,15 @@
 import r2pipe
+import sys
+
 
 syscall = [15, 5]
 
-#r2 = r2pipe.open('reverse_shell', flags = ['-w', '-d', '-2'])
-r2 = r2pipe.open('shellcode', flags = ['-w', '-d', '-2'])
+r2 = r2pipe.open('reverse_shell', flags = ['-w', '-d', '-2'])
+#r2 = r2pipe.open('shellcode', flags = ['-w', '-d', '-2'])
+# r2 = r2pipe.open('shellcode', flags = ['-w', '-d']) # mac
 
 r2.cmd("aaaa")
-r2.cmd("ood")
+r2.cmd("ood") # comment this line if sip is enabled on mac.
 r2.cmd("db entry0")
 r2.cmd("dc")
 
@@ -22,12 +25,20 @@ while True:
         rip = hex(register_data["rip"])
         rip_drf = r2.cmdj('pxj 2 @ '+ rip)
         if rip_drf == syscall:
-            print("rax:{}, rdi:{}, rsi:{}, rdx:{}, rcx:{}".format(register_data["rax"], register_data["rdi"], register_data["rsi"], register_data["rdx"], register_data["rcx"]))
+            print("rax:{}, rdi:{}, rsi:{}, rdx:{}, rcx:{}".format(hex(register_data["rax"]), hex(register_data["rdi"]), hex(register_data["rsi"]), hex(register_data["rdx"]), hex(register_data["rcx"])))
             if register_data["rax"] == 59:
-                print(r2.cmdj('pxj 8 @ '+hex(register_data["rdi"])))
+                argument = ''.join(chr(m) for m in r2.cmdj('pxj 8 @ '+hex(register_data["rdi"])))
+                if '/bin/sh' in argument:
+                    print('execve arg is {}'.format(argument))
+                    sys.exit(1)
+            if register_data["rax"] == 0:
+                print('read syscall encountered - breaking')
+                sys.exit(1)
+
+
     except Exception as e:
         print(e)
-        break
+        sys.exit(1)
 
 
 
